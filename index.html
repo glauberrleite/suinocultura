@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Suinocultura UFAL</title>
+    <style>
+        .spinner-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 40px auto;
+        }
+        .spinner {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            overflow: visible;
+            transform: rotate(-90deg); /* Start from top */
+        }
+        .spinner-inner {
+            width: 220px;
+            height: 220px;
+            left: 90px;
+            top: 90px;
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2;
+            background: #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Suinocultura - Gerenciamento de lotes</h1>
+    
+    <div class="spinner-container">
+        <svg class="spinner" width="400" height="400" viewBox="0 0 400 400">
+            <g id="outer-level"></g>
+            <g id="inner-level"></g>
+        </svg>
+        <div class="spinner-inner"></div>
+    </div>
+    
+    <script>
+        // Helper to describe an SVG arc path
+        function describeArc(cx, cy, r1, r2, startAngle, endAngle) {
+            const toRad = angle => (Math.PI / 180) * angle;
+            const startOuter = {
+                x: cx + r2 * Math.cos(toRad(startAngle)),
+                y: cy + r2 * Math.sin(toRad(startAngle))
+            };
+            const endOuter = {
+                x: cx + r2 * Math.cos(toRad(endAngle)),
+                y: cy + r2 * Math.sin(toRad(endAngle))
+            };
+            const startInner = {
+                x: cx + r1 * Math.cos(toRad(endAngle)),
+                y: cy + r1 * Math.sin(toRad(endAngle))
+            };
+            const endInner = {
+                x: cx + r1 * Math.cos(toRad(startAngle)),
+                y: cy + r1 * Math.sin(toRad(startAngle))
+            };
+            const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+            return [
+                `M ${startOuter.x} ${startOuter.y}`,
+                `A ${r2} ${r2} 0 ${largeArc} 1 ${endOuter.x} ${endOuter.y}`,
+                `L ${startInner.x} ${startInner.y}`,
+                `A ${r1} ${r1} 0 ${largeArc} 0 ${endInner.x} ${endInner.y}`,
+                'Z'
+            ].join(' ');
+        }
+
+        function drawSectors(group, cx, cy, r1, r2, sectors, colors) {
+            const anglePerSector = 360 / sectors;
+            let startAngle = 0;
+            for (let i = 0; i < sectors; i++) {
+                let color;
+                if (i < 4) color = colors[0];
+                else if (i < 16) color = colors[1];
+                else color = colors[2];
+                const endAngle = startAngle + anglePerSector;
+                const path = describeArc(cx, cy, r1, r2, startAngle, endAngle);
+                const sector = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                sector.setAttribute('d', path);
+                sector.setAttribute('fill', color);
+                sector.setAttribute('stroke', '#fff');
+                sector.setAttribute('stroke-width', '2');
+                group.appendChild(sector);
+                startAngle = endAngle;
+            }
+        }
+
+        let innerRotation = 0;
+        const stepAngle = 360 / 21;
+
+        function rotateInner() {
+            innerRotation += stepAngle;
+            innerGroup.setAttribute('transform', `rotate(${innerRotation} 200 200)`);
+        }
+
+        // Create and add the button
+        const btn = document.createElement('button');
+        btn.textContent = 'Rotate Inner Spin';
+        btn.style.display = 'block';
+        btn.style.margin = '20px auto';
+        btn.onclick = rotateInner;
+        document.body.insertBefore(btn, document.body.firstChild);
+
+        const svg = document.querySelector('.spinner');
+        const outerGroup = svg.getElementById('outer-level');
+        const innerGroup = svg.getElementById('inner-level');
+        // Outer level: 21 sectors, radius 180-200
+        drawSectors(outerGroup, 200, 200, 180, 200, 21, ['#2196f3', '#f44336', '#4caf50']);
+        // Inner level: 21 sectors, radius 120-160
+        drawSectors(innerGroup, 200, 200, 120, 160, 21, ['#2196f3', '#f44336', '#4caf50']);
+    </script>
+</body>
+</html>
