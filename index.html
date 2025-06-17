@@ -34,6 +34,11 @@
 <body>
     <h1>Suinocultura - Gerenciamento de lotes</h1>
     
+    <label for="datepicker">Data do início do ciclo:</label>
+    <input type="date" id="datepicker" name="datepicker">
+    <button type="button" id="date-btn">OK</button>
+    <span id="weeks-diff" style="margin-left:10px;"></span>
+
     <div class="spinner-container">
         <svg class="spinner" width="400" height="400" viewBox="0 0 400 400">
             <g id="outer-level"></g>
@@ -72,14 +77,21 @@
             ].join(' ');
         }
 
-        function drawSectors(group, cx, cy, r1, r2, sectors, colors) {
+        function drawSectors(group, cx, cy, r1, r2, sectors, colors = null) {
             const anglePerSector = 360 / sectors;
             let startAngle = 0;
             for (let i = 0; i < sectors; i++) {
+                
+                // Definição de cor
                 let color;
-                if (i < 4) color = colors[0];
-                else if (i < 16) color = colors[1];
-                else color = colors[2];
+                if (group.id === 'inner-level') {
+                    color = `hsl(${(i * 360) / sectors}, 70%, 60%)`;
+                } else {
+                    if (i < 4) color = colors[0];
+                    else if (i < 16) color = colors[1];
+                    else color = colors[2];
+                }
+
                 const endAngle = startAngle + anglePerSector;
                 const path = describeArc(cx, cy, r1, r2, startAngle, endAngle);
                 const sector = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -88,6 +100,27 @@
                 sector.setAttribute('stroke', '#fff');
                 sector.setAttribute('stroke-width', '2');
                 group.appendChild(sector);
+
+                // Adiciona label se for inner-level
+                if (group.id === 'inner-level') {
+                    // Ângulo central do setor
+                    const midAngle = startAngle + anglePerSector / 2;
+                    const rad = (Math.PI / 180) * midAngle;
+                    // Posição do label (meio do anel)
+                    const labelRadius = (r1 + r2) / 2;
+                    const x = cx + labelRadius * Math.cos(rad);
+                    const y = cy + labelRadius * Math.sin(rad) + 6; // +6 para alinhar verticalmente
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', x);
+                    text.setAttribute('y', y);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('font-size', '20');
+                    text.setAttribute('fill', '#222');
+                    text.setAttribute('font-family', 'Arial, sans-serif');
+                    text.textContent = i === 0 ? 1 : 22 - i;
+                    group.appendChild(text);
+                }
+
                 startAngle = endAngle;
             }
         }
@@ -95,18 +128,10 @@
         let innerRotation = 0;
         const stepAngle = 360 / 21;
 
-        function rotateInner() {
-            innerRotation += stepAngle;
+        function rotateInner(n_steps = 1) {
+            innerRotation = (n_steps % 21) * stepAngle;
             innerGroup.setAttribute('transform', `rotate(${innerRotation} 200 200)`);
         }
-
-        // Create and add the button
-        const btn = document.createElement('button');
-        btn.textContent = 'Rotate Inner Spin';
-        btn.style.display = 'block';
-        btn.style.margin = '20px auto';
-        btn.onclick = rotateInner;
-        document.body.insertBefore(btn, document.body.firstChild);
 
         const svg = document.querySelector('.spinner');
         const outerGroup = svg.getElementById('outer-level');
@@ -114,7 +139,32 @@
         // Outer level: 21 sectors, radius 180-200
         drawSectors(outerGroup, 200, 200, 180, 200, 21, ['#2196f3', '#f44336', '#4caf50']);
         // Inner level: 21 sectors, radius 120-160
-        drawSectors(innerGroup, 200, 200, 120, 160, 21, ['#2196f3', '#f44336', '#4caf50']);
+        drawSectors(innerGroup, 200, 200, 120, 160, 21);
+
+        // Cálculo de semanas de acordo com o início do ciclo
+        document.getElementById('date-btn').onclick = function() {
+            const input = document.getElementById('datepicker').value;
+            const output = document.getElementById('weeks-diff');
+            if (!input) {
+                output.textContent = 'Selecione uma data.';
+                return;
+            }
+            const selectedDate = new Date(input);
+            const now = new Date();
+            // Zera horas para comparar apenas datas
+            selectedDate.setHours(0,0,0,0);
+            now.setHours(0,0,0,0);
+            const diffMs = now - selectedDate;
+            const diffWeeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
+
+            if (diffWeeks < 0) {
+                output.textContent = 'A data selecionada é no futuro.';
+                return;
+            }
+            output.textContent = `Se passaram ${diffWeeks} semana(s) desde o início do ciclo.`;
+
+            rotateInner(diffWeeks);
+        };
     </script>
 </body>
 </html>
